@@ -8,10 +8,12 @@ import { uploadImage } from "../gcloud";
 export const login: any = async (req: any, res: any, next: any) => {
   const { email, password }: { email: string; password: string } = req.body;
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({
+    $or: [{ email }, { username: email }],
+  });
 
   if (!user || !password) {
-    const error: any = new Error("Invalid email or password.");
+    const error: any = new Error("Invalid email/username or password.");
     error.code = 422;
     return next(error);
   }
@@ -19,7 +21,7 @@ export const login: any = async (req: any, res: any, next: any) => {
   const isTrue: any = await bcrypt.compare(password, user.password);
 
   if (!isTrue) {
-    const error: any = new Error("Invalid email or password.");
+    const error: any = new Error("Invalid email/username or password.");
     error.code = 422;
     return next(error);
   }

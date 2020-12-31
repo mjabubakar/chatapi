@@ -14,12 +14,12 @@ const app: express.Application = express();
 const corsOptions = {
   origin: process.env.FRONTEND_URL,
   methods: ["GET", "POST"],
-  allowedHeaders: ["authorization"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
 
-let http = require("http").Server(app);
-export let io = require("socket.io")(http, {
+const http = require("http").Server(app);
+const io = require("socket.io")(http, {
   cors: corsOptions,
 });
 
@@ -37,11 +37,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use((_, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   next();
 });
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 
 app.use(routes);
 
@@ -87,6 +87,7 @@ io.on("connection", async (socket: any) => {
   const username = socket.username;
   let user: any;
   const rooms: string[] = [];
+  let timeout: any = undefined;
 
   try {
     user = await User.findOneAndUpdate({ username }, { online: true });
@@ -99,8 +100,8 @@ io.on("connection", async (socket: any) => {
     });
     socket.join(user.username);
     socket.join(rooms);
-
-    setTimeout(() => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
       rooms.forEach((room: string) => {
         socket.to(room).emit("online", {
           username: user.username,
@@ -154,14 +155,17 @@ io.on("connection", async (socket: any) => {
     });
   });
   socket.on("disconnect", async () => {
-    const user = await User.findOneAndUpdate({ username }, { online: false });
+    let user: any;
+    user = await User.findOneAndUpdate({ username }, { online: false });
 
-    rooms.forEach((room: string) => {
-      socket.to(room).emit("offline", {
-        time: user?.updated_at,
-        username: user?.username,
+    timeout = setTimeout(() => {
+      rooms.forEach((room: string) => {
+        socket.to(room).emit("offline", {
+          time: user?.updated_at,
+          username: user?.username,
+        });
       });
-    });
+    }, 60000);
   });
 });
 mongoose.set("useCreateIndex", true);
