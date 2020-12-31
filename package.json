@@ -1,10 +1,11 @@
 {
-  "name": "jafblog",
+  "name": "chatapi",
   "version": "1.0.0",
   "description": "Chat REST API built with Node, MongoDB and SocketIO.",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon --exec ts-node index.ts",
+    "start": "ts-node index.ts",
+    "dev": "nodemon --exec ts-node index.ts",
     "postinstall": "node gcloudscript.ts"
   },
   "repository": {
